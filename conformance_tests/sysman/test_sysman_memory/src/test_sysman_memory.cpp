@@ -13,6 +13,8 @@
 #include <condition_variable>
 #include <thread>
 
+#include "test_harness/test_harness.hpp"
+
 namespace lzt = level_zero_tests;
 
 #include <level_zero/zes_api.h>
@@ -23,12 +25,19 @@ std::mutex mem_mutex;
 std::condition_variable condition_variable;
 uint32_t ready = 0;
 
+uint32_t get_prop_length(char *prop) { return std::strlen(prop); }
+const uint32_t numThreads = 10; 
+
 #ifdef USE_ZESINIT
 class MemoryModuleZesTest : public lzt::ZesSysmanCtsClass {};
 #define MEMORY_TEST MemoryModuleZesTest
 #else // USE_ZESINIT
 class MemoryModuleTest : public lzt::SysmanCtsClass {};
 #define MEMORY_TEST MemoryModuleTest
+
+class MemoryFirmwareTest : public lzt::SysmanCtsClass {};
+#define MEMORY_FIRMWARE_TEST MemoryFirmwareTest
+
 #endif // USE_ZESINIT
 
 TEST_F(
@@ -443,4 +452,79 @@ TEST_F(
     memoryThread.join();
   }
 }
+
+/*
+TEST_F(
+    MEMORY_FIRMWARE_TEST,
+    GivenValidFirmwareHandleWhenRetrievingFirmwarePropertiesThenValidPropertiesAreReturned) {
+  for (auto device : devices) {
+    auto deviceProperties = lzt::get_sysman_device_properties(device);
+    uint32_t count = 0;
+    auto firmware_handles = lzt::get_firmware_handles(device, count);
+    if (count == 0) {
+      FAIL() << "No handles found: "
+             << _ze_result_t(ZE_RESULT_ERROR_UNSUPPORTED_FEATURE);
+    }
+
+    for (auto firmware_handle : firmware_handles) {
+      ASSERT_NE(nullptr, firmware_handle);
+      auto properties = lzt::get_firmware_properties(firmware_handle);
+      if (properties.onSubdevice) {
+        EXPECT_LT(properties.subdeviceId, deviceProperties.numSubdevices);
+      }
+      EXPECT_LT(get_prop_length(properties.name), ZES_STRING_PROPERTY_SIZE);
+      EXPECT_GT(get_prop_length(properties.name), 0);
+      EXPECT_LT(get_prop_length(properties.version), ZES_STRING_PROPERTY_SIZE);
+    }
+  }
+}
+
+*/
+
+TEST_F(
+  MEMORY_FIRMWARE_TEST,
+  GivenValidMemoryAndFirmwareHandlesWhenGettingMemoryGetStateAndFirmwareGetPropertiesFromDifferentThreadsThenExpectBothToReturnSucess) {
+
+    std::thread memoryThreads[numThreads];
+    std::thread firmwareThreads[numThreads];
+
+    for(auto device: devices){
+      uint32_t count = 0;
+      auto firmware_handles = lzt::get_firmware_handles(device, count);
+      if (count == 0) {
+        FAIL() << "No handles found: "
+              << _ze_result_t(ZE_RESULT_ERROR_UNSUPPORTED_FEATURE);
+      }
+
+      for (auto firmware_handle : firmware_handles) {
+        ASSERT_NE(nullptr, firmware_handle);
+        auto properties = lzt::get_firmware_properties(firmware_handle);
+
+        //Are the below lines till line.532 required? 
+        //but we cant ensure correct firmware props are returned without them
+        if (properties.onSubdevice) {
+          EXPECT_LT(properties.subdeviceId, deviceProperties.numSubdevices);
+        }
+        EXPECT_LT(get_prop_length(properties.name), ZES_STRING_PROPERTY_SIZE);
+        EXPECT_GT(get_prop_length(properties.name), 0);
+        EXPECT_LT(get_prop_length(properties.version), ZES_STRING_PROPERTY_SIZE);
+
+        //till this from start of my comment at 525
+
+        for (int i = 0; i < numThreads; i++) {
+            memoryThreads[i] = std::thread(getMemoryState, device);
+            firmwareThreads[i](properties, device);
+        }
+
+        for (int i = 0; i < numThreads; ++i) {
+            memoryThreads[i].join(); 
+            firmwareThreads[i].join(); 
+        }
+
+      }
+
+    }  
+
+}
+
 } // namespace
