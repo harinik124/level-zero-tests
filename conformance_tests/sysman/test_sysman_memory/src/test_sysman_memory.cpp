@@ -482,48 +482,49 @@ TEST_F(
 */
 
 TEST_F(
-  MEMORY_FIRMWARE_TEST,
-  GivenValidMemoryAndFirmwareHandlesWhenGettingMemoryGetStateAndFirmwareGetPropertiesFromDifferentThreadsThenExpectBothToReturnSucess) {
+    MEMORY_FIRMWARE_TEST,
+    GivenValidMemoryAndFirmwareHandlesWhenGettingMemoryGetStateAndFirmwareGetPropertiesFromDifferentThreadsThenExpectBothToReturnSucess) {
 
-    std::thread memoryThreads[numThreads];
-    std::thread firmwareThreads[numThreads];
+  std::thread memoryThreads[numThreads];
+  std::thread firmwareThreads[numThreads];
 
-    for(auto device: devices){
-      uint32_t count = 0;
-      auto firmware_handles = lzt::get_firmware_handles(device, count);
-      if (count == 0) {
-        FAIL() << "No handles found: "
-              << _ze_result_t(ZE_RESULT_ERROR_UNSUPPORTED_FEATURE);
+  for (auto device : devices) {
+    uint32_t count = 0;
+    auto firmware_handles = lzt::get_firmware_handles(device, count);
+    auto deviceProperties = lzt::get_sysman_device_properties(device);
+    if (count == 0) {
+      FAIL() << "No handles found: "
+            << _ze_result_t(ZE_RESULT_ERROR_UNSUPPORTED_FEATURE);
+    }
+
+    for (auto firmware_handle : firmware_handles) {
+      ASSERT_NE(nullptr, firmware_handle);
+      auto properties = lzt::get_firmware_properties(firmware_handle);
+
+      //Are the below lines till line.532 required? 
+      //but we cant ensure correct firmware props are returned without them
+      if (properties.onSubdevice) {
+        EXPECT_LT(properties.subdeviceId, deviceProperties.numSubdevices);
+      }
+      EXPECT_LT(get_prop_length(properties.name), ZES_STRING_PROPERTY_SIZE);
+      EXPECT_GT(get_prop_length(properties.name), 0);
+      EXPECT_LT(get_prop_length(properties.version), ZES_STRING_PROPERTY_SIZE);
+
+      //till this from start of my comment at 525
+
+      for (int i = 0; i < numThreads; i++) {
+        memoryThreads[i] = std::thread(getMemoryState, device);
+        firmwareThreads[i] = std::thread(properties, device);
       }
 
-      for (auto firmware_handle : firmware_handles) {
-        ASSERT_NE(nullptr, firmware_handle);
-        auto properties = lzt::get_firmware_properties(firmware_handle);
-
-        //Are the below lines till line.532 required? 
-        //but we cant ensure correct firmware props are returned without them
-        if (properties.onSubdevice) {
-          EXPECT_LT(properties.subdeviceId, deviceProperties.numSubdevices);
-        }
-        EXPECT_LT(get_prop_length(properties.name), ZES_STRING_PROPERTY_SIZE);
-        EXPECT_GT(get_prop_length(properties.name), 0);
-        EXPECT_LT(get_prop_length(properties.version), ZES_STRING_PROPERTY_SIZE);
-
-        //till this from start of my comment at 525
-
-        for (int i = 0; i < numThreads; i++) {
-            memoryThreads[i] = std::thread(getMemoryState, device);
-            firmwareThreads[i](properties, device);
-        }
-
-        for (int i = 0; i < numThreads; ++i) {
-            memoryThreads[i].join(); 
-            firmwareThreads[i].join(); 
-        }
-
+      for (int i = 0; i < numThreads; i++) {
+        memoryThreads[i].join(); 
+        firmwareThreads[i].join(); 
       }
 
-    }  
+    }
+
+  }  
 
 }
 
