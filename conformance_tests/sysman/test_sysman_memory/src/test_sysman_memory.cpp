@@ -478,8 +478,8 @@ TEST_F(
     MEMORY_FIRMWARE_TEST,
     GivenValidMemoryAndFirmwareHandlesWhenGettingMemoryGetStateAndFirmwareGetPropertiesFromDifferentThreadsThenExpectBothToReturnSucess) {
 
-  //std::thread memoryThreads[numThreads];
-  //std::thread firmwareThreads[numThreads];
+  std::thread memoryThreads[numThreads];
+  std::thread firmwareThreads[numThreads];
 
   for (auto device : devices) {
     uint32_t count = 0;
@@ -498,11 +498,11 @@ TEST_F(
       firmwareThread.join();
 
       for (int i = 0; i < numThreads; i++) {
-        std::thread memoryThreads(getMemoryState, device);
-        std::thread firmwareThreads(getFirmwareProperties, firmware_handle, deviceProperties);
+        std::thread memoryThreadss(getMemoryState, device);
+        std::thread firmwareThreadss(getFirmwareProperties, firmware_handle, deviceProperties);
      
-        memoryThreads.join(); 
-        firmwareThreads.join(); 
+        memoryThreadss.join(); 
+        firmwareThreadss.join(); 
       }
 
       for (int i = 0; i < numThreads; i++) {
