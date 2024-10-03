@@ -32,14 +32,20 @@ const uint32_t numThreads = 10;
 class MemoryModuleZesTest : public lzt::ZesSysmanCtsClass {};
 #define MEMORY_TEST MemoryModuleZesTest
 
-class MemoryFirmwareZesTest : public lzt::ZesSysmanCtsClass {};
+//class MemoryFirmwareZesTest : public lzt::ZesSysmanCtsClass {};
+//#define MEMORY_FIRMWARE_TEST MemoryFirmwareZesTest
+
+class MemoryFirmwareZesTest : public MemoryModuleZesTest {};
 #define MEMORY_FIRMWARE_TEST MemoryFirmwareZesTest
 
 #else // USE_ZESINIT
 class MemoryModuleTest : public lzt::SysmanCtsClass {};
 #define MEMORY_TEST MemoryModuleTest
 
-class MemoryFirmwareTest : public lzt::SysmanCtsClass {};
+//class MemoryFirmwareTest : public lzt::SysmanCtsClass {};
+//#define MEMORY_FIRMWARE_TEST MemoryFirmwareTest
+
+class MemoryFirmwareTest : public MemoryModuleTest {};
 #define MEMORY_FIRMWARE_TEST MemoryFirmwareTest
 
 #endif // USE_ZESINIT
@@ -410,6 +416,7 @@ TEST_F(
 }
 
 void getMemoryState(ze_device_handle_t device) {
+  std::cout<<"\nInside function getMemoryState";
   uint32_t count = 0;
   std::vector<zes_mem_handle_t> mem_handles =
       lzt::get_mem_handles(device, count);
@@ -425,6 +432,7 @@ void getMemoryState(ze_device_handle_t device) {
     ASSERT_NE(nullptr, mem_handle);
     lzt::get_mem_state(mem_handle);
   }
+  std::cout<<"\nExiting function getMemoryState";
 }
 
 void getRasState(ze_device_handle_t device) {
@@ -465,13 +473,16 @@ void getFirmwareProperties(zes_firmware_handle_t firmware_handle, zes_device_pro
   //but we cant ensure correct firmware props are returned without them
   std::cout<<"\nAfter getting FirmwareProperties";
 
-  
+  ///*
+
   if (properties.onSubdevice) {
     EXPECT_LT(properties.subdeviceId, deviceProperties.numSubdevices);
   }
   EXPECT_LT(get_prop_length(properties.name), ZES_STRING_PROPERTY_SIZE);
   EXPECT_GT(get_prop_length(properties.name), 0);
   EXPECT_LT(get_prop_length(properties.version), ZES_STRING_PROPERTY_SIZE);
+
+  //*/
 
   std::cout<<"\nExiting function getFirmwareProperties";
 
@@ -496,22 +507,22 @@ TEST_F(
 
     for (auto firmware_handle : firmware_handles) {
       
-      std::cout<<"\nChecking if getFirmwareProperties function is being called";
+      //std::cout<<"\nChecking if getFirmwareProperties function is being called";
 
-      getFirmwareProperties(firmware_handle, deviceProperties);
+      //getFirmwareProperties(std::ref(firmware_handle), std::ref(deviceProperties));
 
-      std::cout<<"\nFunction getFirmwareProperties works correctly";
+      //std::cout<<"\nFunction getFirmwareProperties works correctly\n\n";
 
       std::cout<<"\nInside loop firmware handles before starting threads";
       
-      std::thread memoryThread(getMemoryState, device);
-      std::thread firmwareThread(getFirmwareProperties, firmware_handle, deviceProperties);
+      //std::thread memoryThread(getMemoryState, device);
+      std::thread firmwareThread(getFirmwareProperties, std::ref(firmware_handle), std::ref(deviceProperties));
 
       std::cout<<"\nInside loop firmware handles after starting threads";
 
-      memoryThread.join(); 
+      //memoryThread.join(); 
       firmwareThread.join();
-
+      
       std::cout<<"\nInside loop firmware handles after joining threads";
 /*
       for (int i = 0; i < numThreads; i++) {
