@@ -426,9 +426,13 @@ void getMemoryState(ze_device_handle_t device) {
   }
   std::unique_lock<std::mutex> lock(mem_mutex);
   ready++;
+  std::cout<<"\nReady : "<<ready<<"\n";
   condition_variable.notify_all();
+  std::cout<<"\nCondition variables notified\n";
   condition_variable.wait(lock, [] { return ready == 2; });
+  std::cout<<"\nCondition variables wait condition\n";
   for (auto mem_handle : mem_handles) {
+    std::cout<<"\nInside memory handle null check loop\n";
     ASSERT_NE(nullptr, mem_handle);
     lzt::get_mem_state(mem_handle);
   }
@@ -507,7 +511,7 @@ TEST_F(
 
     for (auto firmware_handle : firmware_handles) {
       
-      //std::cout<<"\nChecking if getFirmwareProperties function is being called";
+      //std::cout<<"\nChecking if getFirmwareProperties function is being called if not in thread";
 
       //getFirmwareProperties(std::ref(firmware_handle), std::ref(deviceProperties));
 
@@ -522,9 +526,21 @@ TEST_F(
 
       //memoryThread.join(); 
       firmwareThread.join();
+
+      std::cout<<"\nInside loop firmware handles after joining threads\n\n";
+
+      std::cout<<"\nChecking if getMemoryState function is being called if not in thread";
+
+      getMemoryState(std::ref(device));
+
+      std::cout<<"\nFunction getMemoryState works correctly\n\n";
       
-      std::cout<<"\nInside loop firmware handles after joining threads";
+      //std::thread memoryThread(getMemoryState, std::ref(device));
+      //memoryThread.join();
+
+      
 /*
+
       for (int i = 0; i < numThreads; i++) {
         std::thread memoryThreadss(getMemoryState, device);
         std::thread firmwareThreadss(getFirmwareProperties, firmware_handle, deviceProperties);
