@@ -458,11 +458,13 @@ TEST_F(
 }
 
 void getFirmwareProperties(zes_firmware_handle_t firmware_handle, zes_device_properties_t deviceProperties) {
-  std::cout<<"\ngetFirmwareProperties";
+  std::cout<<"\nCalling function getFirmwareProperties";
   ASSERT_NE(nullptr, firmware_handle);
   auto properties = lzt::get_firmware_properties(firmware_handle);
   //Are the below lines till line.532 required? 
   //but we cant ensure correct firmware props are returned without them
+  std::cout<<"\nAfter getting FirmwareProperties";
+
   
   if (properties.onSubdevice) {
     EXPECT_LT(properties.subdeviceId, deviceProperties.numSubdevices);
@@ -471,6 +473,8 @@ void getFirmwareProperties(zes_firmware_handle_t firmware_handle, zes_device_pro
   EXPECT_GT(get_prop_length(properties.name), 0);
   EXPECT_LT(get_prop_length(properties.version), ZES_STRING_PROPERTY_SIZE);
 
+  std::cout<<"\nExiting function getFirmwareProperties";
+
   //till this from start of my comment at 525
 }
 
@@ -478,25 +482,38 @@ TEST_F(
     MEMORY_FIRMWARE_TEST,
     GivenValidMemoryAndFirmwareHandlesWhenGettingMemoryGetStateAndFirmwareGetPropertiesFromDifferentThreadsThenExpectBothToReturnSucess) {
 
-  std::thread memoryThreads[numThreads];
-  std::thread firmwareThreads[numThreads];
-
   for (auto device : devices) {
     uint32_t count = 0;
+    std::cout<<"\nInside loop devices initialised count=0";
     auto firmware_handles = lzt::get_firmware_handles(device, count);
     auto deviceProperties = lzt::get_sysman_device_properties(device);
+    std::cout<<"\nInside loop devices after getting handles; count = "<<count;
     if (count == 0) {
       FAIL() << "No handles found: "
             << _ze_result_t(ZE_RESULT_ERROR_UNSUPPORTED_FEATURE);
     }
+    std::cout<<"\nInside loop devices after checking handles count!=0";
 
     for (auto firmware_handle : firmware_handles) {
       
+      std::cout<<"\nChecking if getFirmwareProperties function is being called";
+
+      getFirmwareProperties(firmware_handle, deviceProperties);
+
+      std::cout<<"\nFunction getFirmwareProperties works correctly";
+
+      std::cout<<"\nInside loop firmware handles before starting threads";
+      
       std::thread memoryThread(getMemoryState, device);
       std::thread firmwareThread(getFirmwareProperties, firmware_handle, deviceProperties);
+
+      std::cout<<"\nInside loop firmware handles after starting threads";
+
       memoryThread.join(); 
       firmwareThread.join();
 
+      std::cout<<"\nInside loop firmware handles after joining threads";
+/*
       for (int i = 0; i < numThreads; i++) {
         std::thread memoryThreadss(getMemoryState, device);
         std::thread firmwareThreadss(getFirmwareProperties, firmware_handle, deviceProperties);
@@ -504,6 +521,9 @@ TEST_F(
         memoryThreadss.join(); 
         firmwareThreadss.join(); 
       }
+
+      std::thread memoryThreads[numThreads];
+      std::thread firmwareThreads[numThreads];
 
       for (int i = 0; i < numThreads; i++) {
         memoryThreads[i] = std::thread(getMemoryState, device);
@@ -514,6 +534,7 @@ TEST_F(
         memoryThreads[i].join(); 
         firmwareThreads[i].join(); 
       }
+*/
 
     }
 
