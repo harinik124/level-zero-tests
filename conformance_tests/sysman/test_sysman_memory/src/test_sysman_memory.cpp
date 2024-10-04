@@ -469,6 +469,23 @@ TEST_F(
   }
 }
 
+void getMemoryStateTemp(ze_device_handle_t device) {
+  std::cout<<"\nInside function getMemoryState";
+  uint32_t count = 0;
+  std::vector<zes_mem_handle_t> mem_handles =
+      lzt::get_mem_handles(device, count);
+  if (count == 0) {
+    FAIL() << "No handles found: "
+           << _ze_result_t(ZE_RESULT_ERROR_UNSUPPORTED_FEATURE);
+  }
+  for (auto mem_handle : mem_handles) {
+    std::cout<<"\nInside memory handle null check loop\n";
+    ASSERT_NE(nullptr, mem_handle);
+    lzt::get_mem_state(mem_handle);
+  }
+  std::cout<<"\nExiting function getMemoryState";
+}
+
 void getFirmwareProperties(zes_firmware_handle_t firmware_handle, zes_device_properties_t deviceProperties) {
   std::cout<<"\nCalling function getFirmwareProperties";
   ASSERT_NE(nullptr, firmware_handle);
@@ -519,41 +536,44 @@ TEST_F(
 
       std::cout<<"\nInside loop firmware handles before starting threads";
       
-      //std::thread memoryThread(getMemoryState, device);
-      std::thread firmwareThread(getFirmwareProperties, std::ref(firmware_handle), std::ref(deviceProperties));
+      //std::thread memoryThread(getMemoryStateTemp, device);
+      //std::thread firmwareThread(getFirmwareProperties, std::ref(firmware_handle), std::ref(deviceProperties));
 
-      std::cout<<"\nInside loop firmware handles after starting threads";
+      //std::cout<<"\nInside loop firmware handles after starting threads";
 
       //memoryThread.join(); 
-      firmwareThread.join();
+     // firmwareThread.join();
 
-      std::cout<<"\nInside loop firmware handles after joining threads\n\n";
+     // std::cout<<"\nInside loop firmware handles after joining threads\n\n";
 
-      std::cout<<"\nChecking if getMemoryState function is being called if not in thread";
+     // std::cout<<"\nChecking if getMemoryState function is being called if not in thread";
 
-      getMemoryState(std::ref(device));
+      //getMemoryState(std::ref(device));
 
-      std::cout<<"\nFunction getMemoryState works correctly\n\n";
+      //std::cout<<"\nFunction getMemoryState works correctly\n\n";
       
       //std::thread memoryThread(getMemoryState, std::ref(device));
       //memoryThread.join();
 
       
-/*
 
+    /*
       for (int i = 0; i < numThreads; i++) {
-        std::thread memoryThreadss(getMemoryState, device);
+        std::thread memoryThreadss(getMemoryStateTemp, device);
         std::thread firmwareThreadss(getFirmwareProperties, firmware_handle, deviceProperties);
      
         memoryThreadss.join(); 
         firmwareThreadss.join(); 
       }
+    */
+
+      ///*
 
       std::thread memoryThreads[numThreads];
       std::thread firmwareThreads[numThreads];
 
       for (int i = 0; i < numThreads; i++) {
-        memoryThreads[i] = std::thread(getMemoryState, device);
+        memoryThreads[i] = std::thread(getMemoryStateTemp, device);
         firmwareThreads[i] = std::thread(getFirmwareProperties, firmware_handle, deviceProperties);
       }
 
@@ -561,7 +581,7 @@ TEST_F(
         memoryThreads[i].join(); 
         firmwareThreads[i].join(); 
       }
-*/
+//*/
 
     }
 
