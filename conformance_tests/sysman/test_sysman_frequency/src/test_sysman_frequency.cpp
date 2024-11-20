@@ -448,7 +448,11 @@ TEST_F(
 
       zes_freq_properties_t freq_property =
           lzt::get_freq_properties(pfreq_handle);
-
+      
+      std::cout<<"\nBefore trying to set to invalid ranges";
+      std::cout<<"\nfreq_property.min"<<freq_property.min;
+      std::cout<<"\nfreq_property.max"<<freq_property.max;
+    
       if (freq_property.canControl) {
         if (freq_property.min - 100 >= 0) {
           invalid_freq_range.min = freq_property.min - 100;
@@ -456,9 +460,19 @@ TEST_F(
           invalid_freq_range.min = 0;
         }
         invalid_freq_range.max = freq_property.max + 100;
-
+        
         lzt::set_freq_range(pfreq_handle, invalid_freq_range);
+        std::cout<<"\n\nAfter setting to invalid ranges - After set_fre_range function";
+        std::cout<<"\nfreq_property.min"<<freq_property.min;
+        std::cout<<"\nfreq_property.max"<<freq_property.max;
+
         clamped_freq_range = lzt::get_and_validate_freq_range(pfreq_handle);
+        std::cout<<"\n\n\nAfter get_and_validate_freq_range function";
+        std::cout<<"\nfreq_property.min"<<freq_property.min;
+        std::cout<<"\nfreq_property.max"<<freq_property.max;
+        std::cout<<"\nclamped_freq_range.min"<<clamped_freq_range.min;
+        std::cout<<"\nclamped_freq_range.max"<<clamped_freq_range.max;
+
         EXPECT_EQ(freq_property.min, clamped_freq_range.min);
         EXPECT_EQ(freq_property.max, clamped_freq_range.max);
       } else {
